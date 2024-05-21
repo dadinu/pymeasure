@@ -28,6 +28,7 @@ from functools import partial
 
 from ..inputs import BooleanInput, IntegerInput, ListInput, ScientificInput, StringInput
 from ..Qt import QtWidgets, QtCore
+from qfluentwidgets import BodyLabel, ScrollArea, SingleDirectionScrollArea
 from ...experiment import parameters
 
 log = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class InputsWidget(QtWidgets.QWidget):
         parameters = self._procedure.parameter_objects()
         for name in self._inputs:
             if not isinstance(getattr(self, name), self.NO_LABEL_INPUTS):
-                label = QtWidgets.QLabel(self)
+                label = BodyLabel(self)
                 label.setText("%s:" % parameters[name].name)
                 vbox.addWidget(label)
                 self.labels[name] = label
@@ -94,7 +95,7 @@ class InputsWidget(QtWidgets.QWidget):
             vbox.addWidget(getattr(self, name))
 
         if inputs_in_scrollarea:
-            scroll_area = QtWidgets.QScrollArea()
+            scroll_area = ScrollArea(self)
             scroll_area.setWidgetResizable(True)
             scroll_area.setFrameStyle(QtWidgets.QScrollArea.Shape.NoFrame)
             scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

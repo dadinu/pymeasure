@@ -74,8 +74,8 @@ class PlaceholderCompleter(QtWidgets.QCompleter):
 
         self.setCompletionMode(QtWidgets.QCompleter.CompletionMode.PopupCompletion)
         self.setModelSorting(QtWidgets.QCompleter.ModelSorting.CaseInsensitivelySortedModel)
-        self.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.setFilterMode(QtCore.Qt.MatchContains)
+        self.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.setFilterMode(QtCore.Qt.MatchFlag.MatchContains)
 
     def splitPath(self, path):
         if path.endswith("{"):
@@ -120,11 +120,11 @@ class FilenameValidator(QtGui.QValidator):
 
         # Determine state of input
         if not valid_filename:
-            state = QtGui.QValidator.Invalid
+            state = QtGui.QValidator.State.Invalid
         elif half_placeholder:
-            state = QtGui.QValidator.Intermediate
+            state = QtGui.QValidator.State.Intermediate
         else:
-            state = QtGui.QValidator.Acceptable
+            state = QtGui.QValidator.State.Acceptable
 
         # Control the warning for the invalid placeholders
         incorrect_placeholders = [p for p in full_placeholders if p[0] not in self.placeholders]

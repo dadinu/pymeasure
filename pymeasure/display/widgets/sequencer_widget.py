@@ -28,6 +28,7 @@ from inspect import signature
 from collections import ChainMap
 
 from ..Qt import QtCore, QtWidgets, QtGui
+from qfluentwidgets import ComboBox, LineEdit, PushButton, TreeView, TreeItemDelegate, FluentStyleSheet
 from ...experiment.sequencer import SequenceHandler, SequenceEvaluationError
 
 log = logging.getLogger(__name__)
@@ -228,13 +229,13 @@ class SequencerTreeModel(QtCore.QAbstractItemModel):
         self.endResetModel()
 
 
-class ComboBoxDelegate(QtWidgets.QStyledItemDelegate):
+class ComboBoxDelegate(TreeItemDelegate):
     def __init__(self, owner, choices):
         super().__init__(owner)
         self.items = choices
 
     def createEditor(self, parent, option, index):
-        editor = QtWidgets.QComboBox(parent)
+        editor = ComboBox(parent)
         editor.addItems(self.items)
         return editor
 
@@ -261,9 +262,9 @@ class ExpressionValidator(QtGui.QValidator):
         return (return_value, input_string, pos)
 
 
-class LineEditDelegate(QtWidgets.QStyledItemDelegate):
+class LineEditDelegate(TreeItemDelegate):
     def createEditor(self, parent, option, index):
-        editor = QtWidgets.QLineEdit(parent)
+        editor = LineEdit(parent)
         editor.setValidator(ExpressionValidator())
         return editor
 
@@ -279,11 +280,11 @@ class LineEditDelegate(QtWidgets.QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 
-class SequencerTreeView(QtWidgets.QTreeView):
+class SequencerTreeView(TreeView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.width = self.viewport().size().width()
+        self.w = self.viewport().size().width()
 
     def save(self, filename=None):
         self.model().save(filename)
@@ -306,9 +307,9 @@ class SequencerTreeView(QtWidgets.QTreeView):
 
     def setModel(self, model):
         super().setModel(model)
-        self.setColumnWidth(0, int(0.7 * self.width))
-        self.setColumnWidth(1, int(0.9 * self.width))
-        self.setColumnWidth(2, int(0.9 * self.width))
+        self.setColumnWidth(0, int(0.7 * self.w))
+        self.setColumnWidth(1, int(0.9 * self.w))
+        self.setColumnWidth(2, int(0.9 * self.w))
         self.model().layoutChanged.connect(self.activate_persistent_editor)
         self.model().modelReset.connect(self.activate_persistent_editor)
 
@@ -440,28 +441,28 @@ class SequencerWidget(QtWidgets.QWidget):
     def _setup_ui(self):
         self.tree = SequencerTreeView(self)
         self.tree.setHeaderHidden(False)
-        self.tree.setItemDelegateForColumn(1, ComboBoxDelegate(self, self.names_choices))
-        self.tree.setItemDelegateForColumn(2, LineEditDelegate(self))
-        self.load_seq_button = QtWidgets.QPushButton("Load sequence")
+        self.tree.setItemDelegateForColumn(1, ComboBoxDelegate(self.tree, self.names_choices))
+        self.tree.setItemDelegateForColumn(2, LineEditDelegate(self.tree))
+        self.load_seq_button = PushButton("Load sequence")
         self.load_seq_button.clicked.connect(self.load_sequence)
         self.load_seq_button.setToolTip("Load a sequence from a file.")
 
-        self.save_seq_button = QtWidgets.QPushButton("Save sequence")
+        self.save_seq_button = PushButton("Save sequence")
         self.save_seq_button.clicked.connect(self.save_sequence)
         self.save_seq_button.setToolTip("Save a sequence to a file.")
 
-        self.queue_button = QtWidgets.QPushButton("Queue sequence")
+        self.queue_button = PushButton("Queue sequence")
         self.queue_button.clicked.connect(self.queue_sequence)
 
-        self.add_root_item_btn = QtWidgets.QPushButton("Add root item")
+        self.add_root_item_btn = PushButton("Add root item")
         self.add_root_item_btn.clicked.connect(
             partial(self._add_tree_item, level=0)
         )
 
-        self.add_tree_item_btn = QtWidgets.QPushButton("Add item")
+        self.add_tree_item_btn = PushButton("Add item")
         self.add_tree_item_btn.clicked.connect(self._add_tree_item)
 
-        self.remove_tree_item_btn = QtWidgets.QPushButton("Remove item")
+        self.remove_tree_item_btn = PushButton("Remove item")
         self.remove_tree_item_btn.clicked.connect(self._remove_selected_tree_item)
 
     def _layout(self):
@@ -509,7 +510,8 @@ class SequencerWidget(QtWidgets.QWidget):
 
         model = self.tree.model()
         node_index = model.add_node(parameter=parameter, parent=parent)
-        self.tree.openPersistentEditor(model.index(node_index.row(), 1, parent))
+        #uncomment this to get the combo box to be persistently shown
+        #self.tree.openPersistentEditor(model.index(node_index.row(), 1, parent))
         self.tree.expandAll()
 
         self.tree.selectRow(node_index)

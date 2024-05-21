@@ -26,6 +26,7 @@ import logging
 
 from ..browser import Browser
 from ..Qt import QtWidgets
+from qfluentwidgets import PushButton
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -43,13 +44,13 @@ class BrowserWidget(QtWidgets.QWidget):
 
     def _setup_ui(self):
         self.browser = Browser(*self.browser_args, parent=self)
-        self.clear_button = QtWidgets.QPushButton('Clear all', self)
+        self.clear_button = PushButton('Clear all', self)
         self.clear_button.setEnabled(False)
-        self.hide_button = QtWidgets.QPushButton('Hide all', self)
+        self.hide_button = PushButton('Hide all', self)
         self.hide_button.setEnabled(False)
-        self.show_button = QtWidgets.QPushButton('Show all', self)
+        self.show_button = PushButton('Show all', self)
         self.show_button.setEnabled(False)
-        self.open_button = QtWidgets.QPushButton('Open', self)
+        self.open_button = PushButton('Open', self)
         self.open_button.setEnabled(True)
 
     def _layout(self):

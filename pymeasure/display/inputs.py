@@ -27,6 +27,7 @@ import logging
 import re
 
 from .Qt import QtGui, QtWidgets
+from qfluentwidgets import SpinBox, DoubleSpinBox, LineEdit, CheckBox, ComboBox
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -80,7 +81,7 @@ class Input:
         return self._parameter
 
 
-class StringInput(Input, QtWidgets.QLineEdit):
+class StringInput(Input, LineEdit):
     """
     String input box connected to a :class:`Parameter`. Parameter subclasses
     that are string-based may also use this input, but non-string parameters
@@ -102,7 +103,7 @@ class StringInput(Input, QtWidgets.QLineEdit):
         return super().text()
 
 
-class IntegerInput(Input, QtWidgets.QSpinBox):
+class IntegerInput(Input, SpinBox):
     """
     Spin input box for integer values, connected to a :class:`IntegerParameter`.
     """
@@ -110,11 +111,11 @@ class IntegerInput(Input, QtWidgets.QSpinBox):
     def __init__(self, parameter, parent=None, **kwargs):
         super().__init__(parameter=parameter, parent=parent, **kwargs)
         if parameter.step:
-            self.setButtonSymbols(QtWidgets.QAbstractSpinBox.ButtonSymbols.UpDownArrows)
+            self.setSymbolVisible(True)
             self.setSingleStep(parameter.step)
             self.setEnabled(True)
         else:
-            self.setButtonSymbols(QtWidgets.QAbstractSpinBox.ButtonSymbols.NoButtons)
+            self.setSymbolVisible(False)
 
     def set_parameter(self, parameter):
         # Override from :class:`Input`
@@ -130,7 +131,7 @@ class IntegerInput(Input, QtWidgets.QSpinBox):
             return QtWidgets.QAbstractSpinBox.StepEnabledFlag.StepNone
 
 
-class BooleanInput(Input, QtWidgets.QCheckBox):
+class BooleanInput(Input, CheckBox):
     """
     Checkbox for boolean values, connected to a :class:`BooleanParameter`.
     """
@@ -153,7 +154,7 @@ class BooleanInput(Input, QtWidgets.QCheckBox):
         return super().isChecked()
 
 
-class ListInput(Input, QtWidgets.QComboBox):
+class ListInput(Input, ComboBox):
     """
     Dropdown for list values, connected to a :class:`ListParameter`.
     """
@@ -194,7 +195,7 @@ class ListInput(Input, QtWidgets.QComboBox):
         return self._parameter.choices[self.currentIndex()]
 
 
-class ScientificInput(Input, QtWidgets.QDoubleSpinBox):
+class ScientificInput(Input, DoubleSpinBox):
     """
     Spinner input box for floating-point values, connected to a
     :class:`FloatParameter`. This box will display and accept values in
@@ -208,11 +209,11 @@ class ScientificInput(Input, QtWidgets.QDoubleSpinBox):
     def __init__(self, parameter, parent=None, **kwargs):
         super().__init__(parameter=parameter, parent=parent, **kwargs)
         if parameter.step:
-            self.setButtonSymbols(QtWidgets.QAbstractSpinBox.ButtonSymbols.UpDownArrows)
+            self.setSymbolVisible(True)
             self.setSingleStep(parameter.step)
             self.setEnabled(True)
         else:
-            self.setButtonSymbols(QtWidgets.QAbstractSpinBox.ButtonSymbols.NoButtons)
+            self.setSymbolVisible(False)
 
     def set_parameter(self, parameter):
         # Override from :class:`Input`

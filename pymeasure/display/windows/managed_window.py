@@ -31,6 +31,7 @@ import tempfile
 import shutil
 
 import pyqtgraph as pg
+from qfluentwidgets import PushButton, RoundMenu, FluentStyleSheet, themeColor
 
 from ..browser import BrowserItem
 from ..manager import Manager, Experiment
@@ -166,10 +167,10 @@ class ManagedWindowBase(QtWidgets.QMainWindow):
 
     def _setup_ui(self):
 
-        self.queue_button = QtWidgets.QPushButton('Queue', self)
+        self.queue_button = PushButton('Queue', self)
         self.queue_button.clicked.connect(self._queue)
 
-        self.abort_button = QtWidgets.QPushButton('Abort', self)
+        self.abort_button = PushButton('Abort', self)
         self.abort_button.setEnabled(False)
         self.abort_button.clicked.connect(self.abort)
 
@@ -245,16 +246,40 @@ class ManagedWindowBase(QtWidgets.QMainWindow):
         inputs_vbox.addStretch(0)
         inputs_dock.setLayout(inputs_vbox)
 
-        dock = QtWidgets.QDockWidget('Input Parameters')
+        dock = QtWidgets.QDockWidget('Input Parameters', parent=self)
         dock.setWidget(inputs_dock)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, dock)
+        dock.setStyleSheet("QDockWidget"
+                           "{"
+                           "font-size: 11pt;"
+                           "color: white"
+                           "}"
+                           "QDockWidget::title"
+                           "{"
+                           f"background : rgba{themeColor().getRgb()};"
+                           "border: none;"
+                           "border-radius: 9px"
+                           "}"
+                           )
 
         if self.use_sequencer:
-            sequencer_dock = QtWidgets.QDockWidget('Sequencer')
+            sequencer_dock = QtWidgets.QDockWidget('Sequencer', parent=self)
             sequencer_dock.setWidget(self.sequencer)
             sequencer_dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
             self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, sequencer_dock)
+            sequencer_dock.setStyleSheet("QDockWidget"
+                           "{"
+                           "font-size: 11pt;"
+                           "color: white"
+                           "}"
+                           "QDockWidget::title"
+                           "{"
+                           "background : rgba(0, 159, 170, 255);"
+                           "border: none;"
+                           "border-radius: 9px"
+                           "}"
+                           )
 
         if self.use_estimator:
             estimator_dock = QtWidgets.QDockWidget('Estimator')
@@ -304,7 +329,7 @@ class ManagedWindowBase(QtWidgets.QMainWindow):
         if item is not None:
             experiment = self.manager.experiments.with_browser_item(item)
 
-            menu = QtWidgets.QMenu(self)
+            menu = RoundMenu(self)
 
             # Open
             action_open = QtGui.QAction(menu)

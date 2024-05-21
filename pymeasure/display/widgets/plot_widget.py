@@ -28,6 +28,7 @@ import pyqtgraph as pg
 
 from ..curves import ResultsCurve
 from ..Qt import QtCore, QtWidgets
+from qfluentwidgets import BodyLabel, ComboBox
 from .tab_widget import TabWidget
 from .plot_frame import PlotFrame
 
@@ -57,20 +58,20 @@ class PlotWidget(TabWidget, QtWidgets.QWidget):
             self.plot_frame.change_y_axis(y_axis)
 
     def _setup_ui(self):
-        self.columns_x_label = QtWidgets.QLabel(self)
+        self.columns_x_label = BodyLabel(self)
         self.columns_x_label.setMaximumSize(QtCore.QSize(45, 16777215))
         self.columns_x_label.setText('X Axis:')
-        self.columns_y_label = QtWidgets.QLabel(self)
+        self.columns_y_label = BodyLabel(self)
         self.columns_y_label.setMaximumSize(QtCore.QSize(45, 16777215))
         self.columns_y_label.setText('Y Axis:')
 
-        self.columns_x = QtWidgets.QComboBox(self)
-        self.columns_y = QtWidgets.QComboBox(self)
+        self.columns_x = ComboBox(self)
+        self.columns_y = ComboBox(self)
         for column in self.columns:
             self.columns_x.addItem(column)
             self.columns_y.addItem(column)
-        self.columns_x.activated.connect(self.update_x_column)
-        self.columns_y.activated.connect(self.update_y_column)
+        self.columns_x.currentIndexChanged.connect(self.update_x_column)
+        self.columns_y.currentIndexChanged.connect(self.update_y_column)
 
         self.plot_frame = PlotFrame(
             self.columns[0],

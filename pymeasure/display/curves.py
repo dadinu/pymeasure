@@ -67,6 +67,7 @@ class ResultsCurve(pg.PlotDataItem):
 class ResultsImage(pg.ImageItem):
     """ Creates an image loaded dynamically from a file through the Results
     object."""
+    dataUpdated = QtCore.Signal(float, float)
 
     def __init__(self, results, x, y, z, force_reload=False, wdg=None, **kwargs):
         self.results = results
@@ -110,9 +111,15 @@ class ResultsImage(pg.ImageItem):
             ydat = row[self.y]
             xidx, yidx = self.find_img_index(xdat, ydat)
             self.img_data[yidx, xidx, :] = self.colormap((row[self.z] - zmin) / (zmax - zmin))
+            
 
         # set image data, need to transpose since pyqtgraph assumes column-major order
         self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))
+        try:
+            self.dataUpdated.emit(data[self.x].to_numpy()[-1], data[self.y].to_numpy()[-1])
+        except Exception as e:
+            print(e)
+            self.dataUpdated.emit(0,0)
 
     def find_img_index(self, x, y):
         """ Finds the integer image indices corresponding to the
@@ -177,6 +184,7 @@ class Crosshairs(QtCore.QObject):
     """
 
     coordinates = QtCore.Signal(float, float)
+    click = QtCore.Signal(float, float)
 
     def __init__(self, plot, pen=None):
         """ Initiates the crosshars onto a plot given the pen style.
@@ -194,6 +202,9 @@ class Crosshairs(QtCore.QObject):
         self.position = None
         self.proxy = pg.SignalProxy(plot.scene().sigMouseMoved, rateLimit=60,
                                     slot=self.mouseMoved)
+        """self.clickProxy = pg.SignalProxy(plot.scene().sigMouseClicked, rateLimit=0,
+                                    slot=self.mouseClicked)"""
+        plot.scene().sigMouseClicked.connect(self.mouseClicked)
         self.plot = plot
 
     def hide(self):
@@ -222,3 +233,15 @@ class Crosshairs(QtCore.QObject):
             self.update()
         else:
             raise Exception("Mouse location not known")
+        
+    def mouseClicked(self, event=None):
+        """Send the position of the cursor when clicked"""
+        if event is not None:
+            if event.button() == QtCore.Qt.MouseButton.LeftButton:
+                position = event.scenePos()
+                if self.position is not None:
+                    mouse_point = self.plot.vb.mapSceneToView(position)
+                    self.click.emit(mouse_point.x(), mouse_point.y())
+        else:
+            raise Exception("Mouse location not known")
+

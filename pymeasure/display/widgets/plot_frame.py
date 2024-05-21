@@ -47,10 +47,11 @@ class PlotFrame(QtWidgets.QFrame):
     x_axis_changed = QtCore.Signal(str)
     y_axis_changed = QtCore.Signal(str)
 
-    def __init__(self, x_axis=None, y_axis=None, refresh_time=0.2, check_status=True, parent=None):
+    def __init__(self, x_axis=None, y_axis=None, refresh_time=0.2, check_status=True, target_enable = False, parent=None):
         super().__init__(parent)
         self.refresh_time = refresh_time
         self.check_status = check_status
+        self.target_enable = target_enable
         self._setup_ui()
         self.change_x_axis(x_axis)
         self.change_y_axis(y_axis)
@@ -81,6 +82,12 @@ class PlotFrame(QtWidgets.QFrame):
                                                   style=QtCore.Qt.PenStyle.DashLine))
         self.crosshairs.coordinates.connect(self.update_coordinates)
 
+        if self.target_enable:
+            self.target = pg.TargetItem(movable=False)
+            self.target.setZValue(1)
+            self.plot_widget.addItem(self.target)
+            self.crosshairs.click.connect(self.target.setPos)
+
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update_curves)
         self.timer.timeout.connect(self.crosshairs.update)
@@ -94,6 +101,7 @@ class PlotFrame(QtWidgets.QFrame):
         for item in self.plot.items:
             if isinstance(item, self.ResultsClass):
                 if self.check_status:
+                    item.dataUpdated.connect(self.target.setPos)
                     if item.results.procedure.status == Procedure.RUNNING:
                         item.update_data()
                 else:

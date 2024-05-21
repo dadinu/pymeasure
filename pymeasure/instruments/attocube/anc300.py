@@ -254,7 +254,7 @@ class ANC300Controller(Instrument):
 
     :param kwargs: Any valid key-word argument for VISAAdapter
     """
-    version = Instrument.measurement(
+    id = Instrument.measurement(
         "ver", """ Get the version number and instrument identification. """
     )
 
@@ -266,14 +266,12 @@ class ANC300Controller(Instrument):
 
     def __init__(
         self,
-        adapter=None,
+        adapter,
         name="attocube ANC300 Piezo Controller",
         axisnames="",
-        passwd="",
         query_delay=0.05,
         **kwargs,
     ):
-        adapter = self.handle_deprecated_host_arg(adapter, kwargs)
 
         if not isinstance(name, str):
             warn(
@@ -304,13 +302,13 @@ class ANC300Controller(Instrument):
         # clear messages sent upon opening the connection,
         # this contains some non-ascii characters!
         self.adapter.flush_read_buffer()
-        # send password and check authorization
+        """# send password and check authorization
         self.write(passwd)
         self.wait_for()
         super().read()  # ignore echo of password
         auth_msg = super().read()
         if auth_msg != 'Authorization success':
-            raise Exception(f"Attocube authorization failed '{auth_msg}'")
+            raise Exception(f"Attocube authorization failed '{auth_msg}'")"""
         # switch console echo off
         self.ask('echo off')
 
@@ -342,43 +340,6 @@ class ANC300Controller(Instrument):
             attribute = getattr(self, attr)
             if isinstance(attribute, Axis):
                 attribute.stop()
-
-    def handle_deprecated_host_arg(self, adapter, kwargs):
-        """
-        This function formats user input to the __init__ function to be compatible with the
-        current definition of the __init__ function. This is used to support outdated (deprecated)
-        code. and separated out to make it easier to remove in the future. To whoever removes this:
-        This function should be removed and the `adapter` argument in the __init__ method should
-        be made non-optional.
-
-        :param dict kwargs: keyword arguments passed to the __init__ function,
-            including the deprecated `host` argument.
-        :return str: resource string for the VISAAdapter
-        """
-        host = kwargs.pop("host", None)
-        if not (host or adapter):
-            raise TypeError("ANC300Controller: missing 'adapter' argument")
-
-        if not adapter:
-            # because the host argument is deprecated, prompt for the desired
-            # argument which is the adapter argument.
-            warn("The 'host' argument is deprecated. Use 'adapter' instead.", FutureWarning)
-            adapter = host
-
-        if isinstance(adapter, str):
-            if adapter.find("::") > -1:
-                # adapter is a resource string, so use it
-                return adapter
-            # otherwise, `adapter` can only be a (deprecated) hostname, so display a
-            # deprecation warning and create the resource string
-            warn(
-                "Using a hostname is deprecated. Use a full VISA resource string instead.",
-                FutureWarning,
-            )
-            return f"TCPIP::{adapter}::7230::SOCKET"
-        elif isinstance(adapter, Adapter):
-            return adapter
-        raise TypeError("ANC300Controller: 'adapter' argument must be a string or Adapter")
 
     def _extract_value(self, reply):
         """ preprocess_reply function for the Attocube console. This function
@@ -415,3 +376,13 @@ class ANC300Controller(Instrument):
             None means :attr:`query_delay`.
         """
         super().wait_for(self.query_delay if query_delay is None else query_delay)
+    
+    def reset(self):
+        pass
+
+if __name__ == "__main__":
+    from pymeasure.adapters import VISAAdapter, SerialAdapter
+    anc300 = ANC300Controller(VISAAdapter("ASRL4::INSTR", baud_rate = 38400, write_termination = "\r\n", read_termination = "\r\n"), axisnames=["axis1", "axis2"])
+    print(anc300.id)
+    print(anc300.axis1)
+    anc300.adapter.close()

@@ -27,6 +27,7 @@ import logging
 from os.path import basename
 
 from .Qt import QtCore, QtGui, QtWidgets
+from qfluentwidgets import TreeWidget, themeColor
 
 from ..experiment import Procedure
 
@@ -69,6 +70,16 @@ class BrowserItem(QtWidgets.QTreeWidgetItem, BaseBrowserItem):
         self.progressbar = QtWidgets.QProgressBar()
         self.progressbar.setRange(0, 100)
         self.progressbar.setValue(0)
+        self.progressbar.setStyleSheet("QProgressBar"
+                                       "{"
+                                       "border-radius: 6px;"
+                                       "}"
+                                       "QProgressBar::chunk"
+                                       "{"
+                                       "border-radius: 6px;"
+                                       f"background-color: rgba{themeColor().getRgb()};"
+                                       "}")
+        self.progressbar.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
     def setStatus(self, status):
         self.setText(3, self.status_label[status])
@@ -91,7 +102,7 @@ class BrowserItem(QtWidgets.QTreeWidgetItem, BaseBrowserItem):
         self.progressbar.setValue(int(progress))
 
 
-class Browser(QtWidgets.QTreeWidget):
+class Browser(TreeWidget):
     """Graphical list view of :class:`Experiment<pymeasure.display.manager.Experiment>`
     objects allowing the user to view the status of queued Experiments as well as
     loading and displaying data from previous runs.

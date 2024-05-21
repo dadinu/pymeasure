@@ -27,6 +27,8 @@ import logging
 import pyqtgraph as pg
 from ..curves import ResultsImage
 from ..Qt import QtCore, QtWidgets
+from qfluentwidgets import ComboBox, PrimaryPushButton
+from qfluentwidgets import FluentIcon as FIF
 from .tab_widget import TabWidget
 from .image_frame import ImageFrame
 
@@ -38,15 +40,18 @@ class ImageWidget(TabWidget, QtWidgets.QWidget):
     """ Extends the :class:`ImageFrame<pymeasure.display.widgets.image_frame.ImageFrame>`
     to allow different columns of the data to be dynamically chosen
     """
+    sendROISignal = QtCore.pyqtSignal(object)
 
     def __init__(self, name, columns, x_axis, y_axis, z_axis=None, refresh_time=0.2,
-                 check_status=True, parent=None):
+                 check_status=True, roi_enable = False, target_enable = False, parent=None):
         super().__init__(name, parent)
         self.columns = columns
         self.refresh_time = refresh_time
         self.check_status = check_status
         self.x_axis = x_axis
         self.y_axis = y_axis
+        self.roi_enable = roi_enable
+        self.target_enable = target_enable
         self._setup_ui()
         self._layout()
         if z_axis is not None:
@@ -58,18 +63,25 @@ class ImageWidget(TabWidget, QtWidgets.QWidget):
         self.columns_z_label.setMaximumSize(QtCore.QSize(45, 16777215))
         self.columns_z_label.setText('Z Axis:')
 
-        self.columns_z = QtWidgets.QComboBox(self)
+        self.columns_z = ComboBox(self)
         for column in self.columns:
             self.columns_z.addItem(column)
-        self.columns_z.activated.connect(self.update_z_column)
+        self.columns_z.currentIndexChanged.connect(self.update_z_column)
 
         self.image_frame = ImageFrame(
             self.x_axis,
             self.y_axis,
             self.columns[0],
             self.refresh_time,
-            self.check_status
+            self.check_status,
+            self.roi_enable,
+            self.target_enable
         )
+
+        if self.roi_enable: 
+            self.setROIButton = PrimaryPushButton(FIF.LEFT_ARROW, "Send ROI")
+            self.setROIButton.clicked.connect(self.__onSetROIButtonClicked)
+            
         self.updated = self.image_frame.updated
         self.plot = self.image_frame.plot
         self.columns_z.setCurrentIndex(2)
@@ -83,6 +95,8 @@ class ImageWidget(TabWidget, QtWidgets.QWidget):
         hbox.setContentsMargins(-1, 6, -1, 6)
         hbox.addWidget(self.columns_z_label)
         hbox.addWidget(self.columns_z)
+
+        if self.roi_enable: hbox.addWidget(self.setROIButton)
 
         vbox.addLayout(hbox)
         vbox.addWidget(self.image_frame)
@@ -113,3 +127,6 @@ class ImageWidget(TabWidget, QtWidgets.QWidget):
 
     def remove(self, curve):
         self.plot.removeItem(curve)
+
+    def __onSetROIButtonClicked(self):
+        self.sendROISignal.emit((*self.image_frame.roi.pos(),*self.image_frame.roi.size()))
