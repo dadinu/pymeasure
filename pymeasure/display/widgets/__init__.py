@@ -26,7 +26,7 @@ from .browser_widget import BrowserWidget
 from .fileinput_widget import FileInputWidget
 from .estimator_widget import EstimatorWidget, EstimatorThread
 from .image_frame import ImageFrame
-from .image_widget import ImageWidget
+from .image_widget import ImageWidget, Image3DWidget
 from .inputs_widget import InputsWidget
 from .log_widget import LogWidget
 from .plot_frame import PlotFrame

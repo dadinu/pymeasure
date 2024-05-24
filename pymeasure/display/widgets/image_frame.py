@@ -24,7 +24,7 @@
 
 import logging
 
-from ..curves import ResultsImage
+from ..curves import ResultsImage, Results3DImage
 from ..Qt import QtCore
 from .plot_frame import PlotFrame
 import pyqtgraph as pg
@@ -41,8 +41,9 @@ class ImageFrame(PlotFrame):
     z_axis_changed = QtCore.Signal(str)
 
     def __init__(self, x_axis, y_axis, z_axis=None,
-                 refresh_time=0.2, check_status=True, roi_enable = False, target_enable = False, parent=None):
-        super().__init__(x_axis, y_axis, refresh_time, check_status, target_enable, parent)
+                 refresh_time=0.2, check_status=True, roi_enable = False, target_enable = False,
+                max_area_enable = False, max_area = None, parent=None):
+        super().__init__(x_axis, y_axis, refresh_time, check_status, target_enable, max_area_enable, max_area, parent)
         self.change_z_axis(z_axis)
         if roi_enable:
             self.roi = pg.RectROI((0,0), (3,3))
@@ -60,3 +61,53 @@ class ImageFrame(PlotFrame):
             self.plot.setTitle(label)
         self.z_axis = axis
         self.z_axis_changed.emit(axis)
+
+class Image3DFrame(PlotFrame):
+    """ Extends :class:`PlotFrame<pymeasure.display.widgets.plot_frame.PlotFrame>`
+    to plot also axis Z and var using colors.
+    """
+    ResultsClass = Results3DImage
+    var_axis_changed = QtCore.Signal(str)
+    target_changed = QtCore.Signal(object)
+
+    def __init__(self, x_axis, y_axis, z_axis, var_axis = None,
+                 refresh_time=0.2, check_status=True, roi_enable = False, target_enable = False,
+                max_area_enable = False, max_area = None, parent=None):
+        super().__init__(x_axis, y_axis, refresh_time, check_status, target_enable, max_area_enable, max_area, parent)
+        self.z_axis = z_axis
+        self.change_var_axis(var_axis)
+        if roi_enable:
+            self.roi = pg.RectROI((0,0), (3,3))
+            self.plot_widget.addItem(self.roi)
+
+    def change_shown_zidx(self, zidx):
+        index = 0
+        if len(zidx) != 0:
+            for item in self.plot.items:
+                if isinstance(item, self.ResultsClass):
+                    item.shown_zidx = zidx[index]
+                    item.update_data()
+                    index += 1
+
+    def change_var_axis(self, axis):
+        for item in self.plot.items:
+            if isinstance(item, self.ResultsClass):
+                item.var = axis
+                item.update_data()
+        label, units = self.parse_axis(axis)
+        if units is not None:
+            self.plot.setTitle(label + ' (%s)' % units)
+        else:
+            self.plot.setTitle(label)
+        self.var_axis = axis
+        self.var_axis_changed.emit(axis)
+
+    def change_target(self, x, y):
+        super().change_target(x, y)
+        closest_points = []
+        for item in self.plot.items:
+            if isinstance(item, self.ResultsClass):
+                if self.check_status:
+                    xid, yid, _  = item.find_img_index(x,y,0)
+                    closest_points.append((xid, yid))
+        self.target_changed.emit(closest_points)

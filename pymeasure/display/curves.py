@@ -63,6 +63,53 @@ class ResultsCurve(pg.PlotDataItem):
 
 # TODO: Add method for changing x and y
 
+class Results3DCurve(pg.PlotDataItem):
+    """ Creates a curve loaded dynamically from a file through the Results object. The data can
+    be forced to fully reload on each update, useful for cases when the data is changing across
+    the full file instead of just appending.
+    """
+    dataUpdated = QtCore.Signal(float, float)
+
+    def __init__(self, results, z, var, force_reload=False, wdg=None, **kwargs):
+        super().__init__(**kwargs)
+        self.results = results
+        self.wdg = wdg
+        self.pen = kwargs.get('pen', None)
+        self.z, self.var = z, var
+        self.zstart = getattr(self.results.procedure, self.z + '_start')
+        self.zend = getattr(self.results.procedure, self.z + '_end')
+        self.zstep = getattr(self.results.procedure, self.z + '_step')
+        self.zsize = int(np.ceil((self.zend - self.zstart) / self.zstep)) + 1
+        self.force_reload = force_reload
+        self.color = self.opts['pen'].color()
+        self.shown_xid = 0
+        self.shown_yid = 0
+
+    def update_data(self):
+        """Updates the data by polling the results"""
+        if self.force_reload:
+            self.results.reload()
+        data = self.results.data  # get the current snapshot
+        var = data[self.var].to_numpy()
+        z = data[self.z].to_numpy()
+        # Set x-y data
+        self.setData(z[self.shown_xid+self.shown_yid*self.zsize:self.zsize], 
+                     var[self.shown_xid+self.shown_yid*self.zsize:self.zsize])
+    
+    def get_closest_z_data(self, z_given):
+        if self.force_reload:
+            self.results.reload()
+        data = self.results.data
+        z = data[self.z].to_numpy()
+        return np.argmin(np.abs(z-z_given))
+
+    def set_color(self, color):
+        self.pen.setColor(color)
+        self.color = self.opts['pen'].color()
+        self.updateItems(styleUpdate=True)
+
+# TODO: Add method for changing x and y
+
 
 class ResultsImage(pg.ImageItem):
     """ Creates an image loaded dynamically from a file through the Results
@@ -131,6 +178,101 @@ class ResultsImage(pg.ImageItem):
             indices[0] = self.round_up((x - self.xstart) / self.xstep)
         if self.ystart <= y <= self.yend:
             indices[1] = self.round_up((y - self.ystart) / self.ystep)
+
+        return indices
+
+    def round_up(self, x):
+        """Convenience function since numpy rounds to even"""
+        if x % 1 >= 0.5:
+            return int(x) + 1
+        else:
+            return int(x)
+
+    def colormap(self, x):
+        """ Return mapped color as 0.0-1.0 floats RGBA """
+        return self.cm.map(x, mode='float')
+
+    # TODO: colormap selection
+
+class Results3DImage(pg.ImageItem):
+    """ Creates an image loaded dynamically from a file through the Results
+    object."""
+    dataUpdated = QtCore.Signal(float, float)
+
+    def __init__(self, results, var, x, y, z, force_reload=False, wdg=None, **kwargs):
+        self.results = results
+        self.wdg = wdg
+        self.var = var
+        self.x = x
+        self.y = y
+        self.z = z
+        self.xstart = getattr(self.results.procedure, self.x + '_start')
+        self.xend = getattr(self.results.procedure, self.x + '_end')
+        self.xstep = getattr(self.results.procedure, self.x + '_step')
+        self.xsize = int(np.ceil((self.xend - self.xstart) / self.xstep)) + 1
+        self.ystart = getattr(self.results.procedure, self.y + '_start')
+        self.yend = getattr(self.results.procedure, self.y + '_end')
+        self.ystep = getattr(self.results.procedure, self.y + '_step')
+        self.ysize = int(np.ceil((self.yend - self.ystart) / self.ystep)) + 1
+        self.zstart = getattr(self.results.procedure, self.z + '_start')
+        self.zend = getattr(self.results.procedure, self.z + '_end')
+        self.zstep = getattr(self.results.procedure, self.z + '_step')
+        self.zsize = int(np.ceil((self.zend - self.zstart) / self.zstep)) + 1
+        self.shown_zidx = 0
+        self.img_data = np.zeros((self.zsize, self.ysize, self.xsize, 4))
+        self.force_reload = force_reload
+        self.cm = pg.colormap.get('viridis')
+
+        super().__init__(image=self.img_data[0])
+
+        # Scale and translate image so that the pixels are in the correct
+        # position in "data coordinates"
+        tr = QtGui.QTransform()
+        tr.scale(self.xstep, self.ystep)
+        tr.translate(int(self.xstart / self.xstep) - 0.5,
+                     int(self.ystart / self.ystep) - 0.5)  # 0.5 so pixels centered
+        self.setTransform(tr)
+
+    def update_data(self):
+        if self.force_reload:
+            self.results.reload()
+
+        data = self.results.data
+
+        def var_color(v, zidx):
+            var_min = data[self.var].to_numpy()[zidx::self.zsize].min()
+            var_max = data[self.var].to_numpy()[zidx::self.zsize].max()
+            return self.colormap((v - var_min) / (var_max - var_min))
+
+        # populate the image array with the new data
+        for idx, row in data.iterrows():
+            xdat = row[self.x]
+            ydat = row[self.y]
+            zdat = row[self.z]
+            xidx, yidx, zidx = self.find_img_index(xdat, ydat, zdat) 
+            self.img_data[zidx, yidx, xidx, :] = var_color(row[self.var], zidx)
+            
+
+        # set image data, need to transpose since pyqtgraph assumes column-major order
+        self.setImage(image=np.transpose(self.img_data[self.shown_zidx], axes=(1, 0, 2)))
+        try:
+            self.dataUpdated.emit(data[self.x].to_numpy()[-1], data[self.y].to_numpy()[-1])
+        except Exception as e:
+            print(e)
+            self.dataUpdated.emit(0,0)
+
+    def find_img_index(self, x, y, z):
+        """ Finds the integer image indices corresponding to the
+        closest x and y points of the data given some x and y data.
+        """
+
+        indices = [self.xsize - 1, self.ysize - 1, self.zsize - 1]  # default to the final pixel
+        if self.xstart <= x <= self.xend:  # only change if within reasonable range
+            indices[0] = self.round_up((x - self.xstart) / self.xstep)
+        if self.ystart <= y <= self.yend:
+            indices[1] = self.round_up((y - self.ystart) / self.ystep)
+        if self.zstart <= z <= self.zend:
+            indices[2] = self.round_up((z - self.zstart) / self.zstep)
 
         return indices
 
