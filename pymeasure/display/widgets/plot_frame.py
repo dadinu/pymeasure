@@ -131,7 +131,7 @@ class PlotFrame(QtWidgets.QFrame):
         for item in self.plot.items:
             if isinstance(item, self.ResultsClass):
                 if self.check_status:
-                    if self.target_enable: item.dataUpdated.connect(self.target.setPos)
+                    if self.target_enable: item.dataUpdated.connect(self.change_target)
                     if item.results.procedure.status == Procedure.RUNNING:
                         item.update_data()
                 else:
@@ -187,21 +187,22 @@ class Plot3DFrame(QtWidgets.QFrame):
     updated = QtCore.Signal()
     slider_moved = QtCore.Signal(object)
     ResultsClass = Results3DCurve
-    x_axis_changed = QtCore.Signal(str)
-    y_axis_changed = QtCore.Signal(str)
+    z_axis_changed = QtCore.Signal(str)
+    var_axis_changed = QtCore.Signal(str)
 
-    def __init__(self, x_axis=None, y_axis=None, refresh_time=0.2, 
+    def __init__(self, x_axis = None,  z_axis=None, var_axis=None, refresh_time=0.2, 
                  check_status=True, target_enable = False,
                 max_area_enable = False, max_area = None, parent=None):
         super().__init__(parent)
+        self.x_axis = x_axis
         self.refresh_time = refresh_time
         self.check_status = check_status
         self.target_enable = target_enable
         self.max_area_enable = max_area_enable
         self.max_area = max_area
         self._setup_ui()
-        self.change_x_axis(x_axis)
-        self.change_y_axis(y_axis)
+        self.change_z_axis(z_axis)
+        self.change_var_axis(var_axis)
 
     def _setup_ui(self):
         self.setAutoFillBackground(False)
@@ -299,22 +300,22 @@ class Plot3DFrame(QtWidgets.QFrame):
         else:
             return axis, None
 
-    def change_x_axis(self, axis):
+    def change_z_axis(self, axis):
         for item in self.plot.items:
             if isinstance(item, self.ResultsClass):
-                item.x = axis
+                item.z = axis
                 item.update_data()
         label, units = self.parse_axis(axis)
         self.plot.setLabel('bottom', label, units=units, **self.LABEL_STYLE)
-        self.x_axis = axis
-        self.x_axis_changed.emit(axis)
+        self.z_axis = axis
+        self.z_axis_changed.emit(axis)
 
-    def change_y_axis(self, axis):
+    def change_var_axis(self, axis):
         for item in self.plot.items:
             if isinstance(item, self.ResultsClass):
-                item.y = axis
+                item.var = axis
                 item.update_data()
         label, units = self.parse_axis(axis)
         self.plot.setLabel('left', label, units=units, **self.LABEL_STYLE)
-        self.y_axis = axis
-        self.y_axis_changed.emit(axis)
+        self.var_axis = axis
+        self.var_axis_changed.emit(axis)

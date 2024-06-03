@@ -70,16 +70,20 @@ class Results3DCurve(pg.PlotDataItem):
     """
     dataUpdated = QtCore.Signal(float, float)
 
-    def __init__(self, results, z, var, force_reload=False, wdg=None, **kwargs):
+    def __init__(self, results, x, z, var, force_reload=False, wdg=None, **kwargs):
         super().__init__(**kwargs)
         self.results = results
         self.wdg = wdg
         self.pen = kwargs.get('pen', None)
-        self.z, self.var = z, var
+        self.z, self.var, self.x = z, var, x
         self.zstart = getattr(self.results.procedure, self.z + '_start')
         self.zend = getattr(self.results.procedure, self.z + '_end')
         self.zstep = getattr(self.results.procedure, self.z + '_step')
         self.zsize = int(np.ceil((self.zend - self.zstart) / self.zstep)) + 1
+        self.xstart = getattr(self.results.procedure, self.x + '_start')
+        self.xend = getattr(self.results.procedure, self.x + '_end')
+        self.xstep = getattr(self.results.procedure, self.x + '_step')
+        self.xsize = int(np.ceil((self.xend - self.xstart) / self.xstep)) + 1
         self.force_reload = force_reload
         self.color = self.opts['pen'].color()
         self.shown_xid = 0
@@ -93,8 +97,8 @@ class Results3DCurve(pg.PlotDataItem):
         var = data[self.var].to_numpy()
         z = data[self.z].to_numpy()
         # Set x-y data
-        self.setData(z[self.shown_xid+self.shown_yid*self.zsize:self.zsize], 
-                     var[self.shown_xid+self.shown_yid*self.zsize:self.zsize])
+        self.setData(z[((self.shown_xid+self.shown_yid*self.xsize)*self.zsize):((self.shown_xid+self.shown_yid*self.xsize)*self.zsize + self.zsize)], 
+                     var[((self.shown_xid+self.shown_yid*self.xsize)*self.zsize):((self.shown_xid+self.shown_yid*self.xsize)*self.zsize + self.zsize)])
     
     def get_closest_z_data(self, z_given):
         if self.force_reload:
@@ -144,7 +148,7 @@ class ResultsImage(pg.ImageItem):
                      int(self.ystart / self.ystep) - 0.5)  # 0.5 so pixels centered
         self.setTransform(tr)
 
-    def update_data(self):
+    """def update_data(self):
         if self.force_reload:
             self.results.reload()
 
@@ -159,6 +163,28 @@ class ResultsImage(pg.ImageItem):
             xidx, yidx = self.find_img_index(xdat, ydat)
             self.img_data[yidx, xidx, :] = self.colormap((row[self.z] - zmin) / (zmax - zmin))
             
+
+        # set image data, need to transpose since pyqtgraph assumes column-major order
+        self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))
+        try:
+            self.dataUpdated.emit(data[self.x].to_numpy()[-1], data[self.y].to_numpy()[-1])
+        except Exception as e:
+            print(e)
+            self.dataUpdated.emit(0,0)
+"""
+    def update_data(self):
+        if self.force_reload:
+            self.results.reload()
+
+        data = self.results.data
+        zmin = data[self.z].min()
+        zmax = data[self.z].max()
+
+        # populate the image array with the new data
+        if data.shape[0] != 0:
+            self.img_data = self.colormap((data[self.z].to_numpy() - zmin) / (zmax - zmin))
+            self.img_data.resize((self.ysize, self.xsize, 4))
+            self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
 
         # set image data, need to transpose since pyqtgraph assumes column-major order
         self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))
@@ -190,6 +216,7 @@ class ResultsImage(pg.ImageItem):
 
     def colormap(self, x):
         """ Return mapped color as 0.0-1.0 floats RGBA """
+        x = np.array(x, dtype=np.float64)
         return self.cm.map(x, mode='float')
 
     # TODO: colormap selection
@@ -219,9 +246,10 @@ class Results3DImage(pg.ImageItem):
         self.zstep = getattr(self.results.procedure, self.z + '_step')
         self.zsize = int(np.ceil((self.zend - self.zstart) / self.zstep)) + 1
         self.shown_zidx = 0
-        self.img_data = np.zeros((self.zsize, self.ysize, self.xsize, 4))
+        self.img_data = np.zeros((self.ysize, self.xsize, 4))
         self.force_reload = force_reload
         self.cm = pg.colormap.get('viridis')
+        self.curr_x, self.curr_y = self.xstart, self.ystart
 
         super().__init__(image=self.img_data[0])
 
@@ -233,7 +261,7 @@ class Results3DImage(pg.ImageItem):
                      int(self.ystart / self.ystep) - 0.5)  # 0.5 so pixels centered
         self.setTransform(tr)
 
-    def update_data(self):
+    """def update_data(self):
         if self.force_reload:
             self.results.reload()
 
@@ -259,7 +287,31 @@ class Results3DImage(pg.ImageItem):
             self.dataUpdated.emit(data[self.x].to_numpy()[-1], data[self.y].to_numpy()[-1])
         except Exception as e:
             print(e)
-            self.dataUpdated.emit(0,0)
+            self.dataUpdated.emit(0,0)"""
+
+    def update_data(self):
+        # Data has to be ordered for this to work.
+        if self.force_reload:
+            self.results.reload()
+
+        data = self.results.data
+        var = data[self.var].to_numpy()[self.shown_zidx::self.zsize]
+        # populate the image array with the new data
+        if data.shape[0] != 0:
+            self.img_data = self.colormap((var - var.min()) / (var.max() - var.min()))
+            self.img_data.resize((self.ysize, self.xsize, 4))
+            self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
+
+        # set image data, need to transpose since pyqtgraph assumes column-major order
+        self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))
+        if data.shape[0] != 0:
+            last_x, last_y = data[self.x].to_numpy()[-1], data[self.y].to_numpy()[-1]
+            if self.curr_x != last_x or self.curr_y != last_y:
+                self.dataUpdated.emit(last_x, last_y)
+                self.curr_x = last_x
+                self.curr_y = last_y
+        else:
+            self.dataUpdated.emit(self.curr_x, self.curr_y)
 
     def find_img_index(self, x, y, z):
         """ Finds the integer image indices corresponding to the
@@ -285,6 +337,7 @@ class Results3DImage(pg.ImageItem):
 
     def colormap(self, x):
         """ Return mapped color as 0.0-1.0 floats RGBA """
+        x = np.array(x, dtype=np.float64)
         return self.cm.map(x, mode='float')
 
     # TODO: colormap selection
@@ -386,4 +439,3 @@ class Crosshairs(QtCore.QObject):
                     self.click.emit(mouse_point.x(), mouse_point.y())
         else:
             raise Exception("Mouse location not known")
-

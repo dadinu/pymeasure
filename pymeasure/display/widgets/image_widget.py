@@ -189,6 +189,7 @@ class Image3DWidget(TabWidget, QtWidgets.QWidget):
         )
 
         self.plot3D_frame = Plot3DFrame(
+            self.x_axis,
             self.z_axis,
             self.columns[0],
             self.refresh_time,
@@ -246,8 +247,9 @@ class Image3DWidget(TabWidget, QtWidgets.QWidget):
         
         curve = Results3DCurve(results,
                                wdg = self,
-                               z = self.plot3D_frame.x_axis,
-                               var = self.plot3D_frame.y_axis,
+                               x = self.plot3D_frame.x_axis,
+                               z = self.plot3D_frame.z_axis,
+                               var = self.plot3D_frame.var_axis,
                                **kwargs)
         return curve, image
 
