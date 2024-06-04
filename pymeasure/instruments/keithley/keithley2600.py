@@ -308,6 +308,26 @@ class Channel:
             self.source_current = current
             time.sleep(pause)
 
+    def sweep_voltage_list(self, listv, trigger_out = False, digio_out = 1, trigger_in = False, digio_in = 2):
+        """Sweep a list of voltages. Emit an output trigger on 
+        each source action on a digital io pin."""
+        listv = list(listv)
+        self.apply_voltage()
+        self.ramp_to_voltage(listv[0])
+        if trigger_in:
+            self.write(f"trigger.source.stimulus = digio.trigger[{digio_in}].EVENT_ID")
+        if trigger_out:
+            self.instrument.write(f"digio.trigger[{digio_out}].stimulus = smu{self.channel}.trigger.SOURCE_COMPLETE_EVENT_ID")
+        print(f"trigger.source.listv({listv})".replace("[", "{").replace("]", "}"))
+        self.write(f"trigger.source.listv({listv})".replace("[", "{").replace("]", "}"))
+        self.write("trigger.arm.count = 1")
+        self.write(f"trigger.count = {len(listv)}")
+        self.write("trigger.source.action = 1")
+        self.write("trigger.endsweep.action = 1")
+        self.source_output = "ON"
+        self.write("trigger.initiate()")
+
+
     def shutdown(self):
         """ Ensures that the current or voltage is turned to zero
         and disables the output. """
@@ -317,3 +337,15 @@ class Channel:
         else:
             self.ramp_to_voltage(0.0)
         self.source_output = 'OFF'
+
+if __name__ == "__main__":
+    from pymeasure.adapters import VISAAdapter
+    #from pyvisa import ResourceManager
+    #rm = ResourceManager()
+    #print(rm.list_resources())
+    keithley2602B = Keithley2600(VISAAdapter("USB0::0x05E6::0x2602::1400505::INSTR"))
+    keithley2602B.ChB.sweep_voltage_list(listv=np.linspace(1,2,10),
+                                         trigger_out = True,
+                                         trigger_in = False)
+    #keithley2602B.ChB.shutdown()
+    keithley2602B.adapter.close()

@@ -204,6 +204,7 @@ class Keithley6482Chnanel(Channel):
         for v in voltages:
             self.voltage = v
 
+
 class Keithley6482(SCPIMixin, Instrument):
     #adapter: VISAAdapter("ASRL4::INSTR")
 
@@ -228,6 +229,9 @@ class Keithley6482(SCPIMixin, Instrument):
                          name = "Keithley 6482", 
                          *args, 
                          **kwargs)
+        
+    def device_clear(self):
+        self.write("DCL")
 
     def close(self):
         self.adapter.close()
