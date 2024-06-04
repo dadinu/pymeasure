@@ -229,9 +229,6 @@ class Keithley6482(SCPIMixin, Instrument):
                          name = "Keithley 6482", 
                          *args, 
                          **kwargs)
-        
-    def device_clear(self):
-        self.write("DCL")
 
     def close(self):
         self.adapter.close()
