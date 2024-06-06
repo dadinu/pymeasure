@@ -162,7 +162,6 @@ class ListInput(Input, ComboBox):
     def __init__(self, parameter, parent=None, **kwargs):
         super().__init__(parameter=parameter, parent=parent, **kwargs)
         self._stringChoices = None
-        self.setEditable(False)
 
     def set_parameter(self, parameter):
         # Override from :class:`Input`
