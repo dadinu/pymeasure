@@ -184,7 +184,7 @@ class ResultsImage(pg.ImageItem):
         if data.shape[0] != 0:
             self.img_data = self.colormap((data[self.z].to_numpy() - zmin) / (zmax - zmin))
             self.img_data.resize((self.ysize, self.xsize, 4))
-            self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
+            #self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
 
         # set image data, need to transpose since pyqtgraph assumes column-major order
         self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))
@@ -300,7 +300,7 @@ class Results3DImage(pg.ImageItem):
         if data.shape[0] != 0:
             self.img_data = self.colormap((var - var.min()) / (var.max() - var.min()))
             self.img_data.resize((self.ysize, self.xsize, 4))
-            self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
+            #self.img_data[1::2,:,:] = np.flip(self.img_data[1::2,:,:], axis=1)
 
         # set image data, need to transpose since pyqtgraph assumes column-major order
         self.setImage(image=np.transpose(self.img_data, axes=(1, 0, 2)))

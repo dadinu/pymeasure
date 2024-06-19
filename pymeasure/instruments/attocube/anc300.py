@@ -382,7 +382,7 @@ class ANC300Controller(Instrument):
 
 if __name__ == "__main__":
     from pymeasure.adapters import VISAAdapter, SerialAdapter
-    anc300 = ANC300Controller(VISAAdapter("ASRL4::INSTR", baud_rate = 38400, write_termination = "\r\n", read_termination = "\r\n"), axisnames=["axis1", "axis2"])
+    anc300 = ANC300Controller(VISAAdapter("ASRL9::INSTR", baud_rate = 38400, write_termination = "\r\n", read_termination = "\r\n"), axisnames=["axis1", "axis2"])
     print(anc300.id)
     print(anc300.axis1)
     anc300.adapter.close()
